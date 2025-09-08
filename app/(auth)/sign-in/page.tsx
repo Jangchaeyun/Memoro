@@ -1,8 +1,14 @@
+'use client'
+
 import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { authClient } from '@/lib/auth-client'
 
 const Page = () => {
+  const handleSignIn = async () => {
+    return await authClient.signIn.social({ provider: 'google' })
+  }
   return (
     <main className='sign-in'>
       <aside className='testimonial'>
@@ -63,7 +69,7 @@ const Page = () => {
           <p>
             지금 바로 첫 번째 <span>Memoro 비디오</span>를 만들어 공유해 보세요!
           </p>
-          <button>
+          <button onClick={handleSignIn}>
             <Image
               src='/assets/icons/google.svg'
               alt='google'
