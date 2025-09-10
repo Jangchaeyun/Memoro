@@ -1,33 +1,63 @@
 'use client'
 
-import React, { ChangeEvent, useState } from 'react'
+import React, { ChangeEvent, FormEvent, useState } from 'react'
 
 import FormField from '@/components/FormField'
 import FileInput from '@/components/FileInput'
+import { useFileInput } from '@/lib/hook/useFileInput'
+import { MAX_THUMBNAIL_SIZE, MAX_VIDEO_SIZE } from '@/constants'
 
 const Page = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     visibility: 'public',
   })
 
-  const video = {}
-  const thumbnail = {}
-  const [error, setError] = useState(null)
+  const video = useFileInput(MAX_VIDEO_SIZE)
+  const thumbnail = useFileInput(MAX_THUMBNAIL_SIZE)
 
-  const handleInputChange = (e: ChangeEvent) => {
+  const [error, setError] = useState('')
+
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
 
     setFormData((prevState) => ({ ...prevState, [name]: value }))
   }
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+
+    setIsSubmitting(true)
+
+    try {
+      if (!video.file || !thumbnail.file) {
+        setError('Please upload vide and thumbnail')
+        return
+      }
+      if (!video.file || !formData.description) {
+        setError('Please fill in all the details')
+        return
+      }
+    } catch (error) {
+      console.log('Error submitting form: ', error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className='wrapper-md upload-page'>
       <h1>비디오 업로드</h1>
 
       {error && <div className='error-field'>{error}</div>}
 
-      <form className='rounded-20 shadow-10 gap-6 w-full flex flex-col px-5 py-7.5'>
+      <form
+        className='rounded-20 shadow-10 gap-6 w-full flex flex-col px-5 py-7.5'
+        onSubmit={handleSubmit}
+      >
         <FormField
           id='title'
           label='제목'
@@ -63,9 +93,8 @@ const Page = () => {
           inputRef={thumbnail.inputRef}
           onChange={thumbnail.handleFileChange}
           onReset={thumbnail.resetFile}
-          type='video'
+          type='image'
         />
-        <FileInput />
         <FormField
           id='visibility'
           label='공개/비공개'
@@ -77,6 +106,10 @@ const Page = () => {
           ]}
           onChange={handleInputChange}
         />
+
+        <button type='submit' disabled={isSubmitting} className='submit-button'>
+          {isSubmitting ? '업로드 중' : '비디오 업로드'}
+        </button>
       </form>
     </div>
   )
