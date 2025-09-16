@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ICONS } from '@/constants'
 import DropdownList from '@/components/DropdownList'
+import RecordScreen from './RecordScreen'
 
 const Header = ({ subHeader, title, userImg }: SharedHeaderProps) => {
   return (
@@ -34,12 +35,7 @@ const Header = ({ subHeader, title, userImg }: SharedHeaderProps) => {
             />
             <span>비디오 업로드</span>
           </Link>
-          <div className='record'>
-            <button className='primary-btn'>
-              <Image src={ICONS.record} alt='record' width={16} height={16} />
-              <span>비디오 녹화</span>
-            </button>
-          </div>
+          <RecordScreen />
         </aside>
       </section>
 
