@@ -34,9 +34,10 @@ const Page = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [videoDuration, setVideoDuration] = useState(0)
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<VideoFormValues>({
     title: '',
     description: '',
+    tags: '',
     visibility: 'public',
   })
 

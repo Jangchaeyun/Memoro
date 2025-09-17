@@ -12,10 +12,10 @@ export const BUNNY = {
 export const emojis = ['😂', '😍', '👍']
 
 export const filterOptions = [
-  'Most Viewed',
-  'Most Recent',
-  'Oldest First',
-  'Least Viewed',
+  '가장 많이 본',
+  '최신',
+  '가장 오래된 순',
+  '가장 적게 본',
 ]
 
 export const visibilities: Visibility[] = ['public', 'private']

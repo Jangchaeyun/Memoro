@@ -16,7 +16,7 @@ import { revalidatePath } from 'next/cache'
 import { fixedWindow } from 'arcjet'
 import aj from '@/lib/arcjet'
 import { request } from '@arcjet/next'
-import { and, eq, or, sql } from 'drizzle-orm'
+import { and, desc, eq, ilike, or, sql } from 'drizzle-orm'
 
 const VIDEO_STREAM_BASE_URL = BUNNY.STREAM_BASE_URL
 const THUMBNAIL_STORAGE_BASE_URL = BUNNY.STORAGE_BASE_URL
@@ -196,3 +196,76 @@ export const getVideoById = withErrorHandling(async (videoId: string) => {
 
   return videoRecord
 })
+
+export const getAllVideosByUser = withErrorHandling(
+  async (
+    userIdParameter: string,
+    searchQuery: string = '',
+    sortFilter?: string
+  ) => {
+    const currentUserId = (
+      await auth.api.getSession({
+        headers: await headers(),
+      })
+    )?.user.id
+    const isOwner = userIdParameter === currentUserId
+
+    const [userInfo] = await db
+      .select({
+        id: user.id,
+        name: user.name,
+        image: user.image,
+        email: user.email,
+      })
+      .from(user)
+      .where(eq(user.id, userIdParameter))
+
+    if (!userInfo) throw new Error('User not found')
+
+    const conditions = [
+      eq(videos.userId, userIdParameter),
+      !isOwner && eq(videos.visibility, 'public'),
+      searchQuery.trim() && ilike(videos.title, `%${searchQuery}%`),
+    ].filter(Boolean) as any[]
+
+    const userVideos = await buildVideoWithUserQuery()
+      .where(and(...conditions))
+      .orderBy(
+        sortFilter ? getOrderByClause(sortFilter) : desc(videos.createdAt)
+      )
+
+    return { user: userInfo, videos: userVideos, count: userVideos.length }
+  }
+)
+
+export const updateVideoVisibility = withErrorHandling(
+  async (videoId: string, visibility: Visibility) => {
+    await validateWithArcjet(videoId)
+    await db
+      .update(videos)
+      .set({ visibility, updatedAt: new Date() })
+      .where(eq(videos.videoId, videoId))
+
+    revalidatePaths(['/', `/video/${videoId}`])
+    return {}
+  }
+)
+
+export const deleteVideo = withErrorHandling(
+  async (videoId: string, thumbnailUrl: string) => {
+    await apiFetch(
+      `${VIDEO_STREAM_BASE_URL}/${BUNNY_LIBRARY_ID}/videos/${videoId}`,
+      { method: 'DELETE', bunnyType: 'stream' }
+    )
+
+    const thumbnailPath = thumbnailUrl.split('thumbnails/')[1]
+    await apiFetch(
+      `${THUMBNAIL_STORAGE_BASE_URL}/thumbnails/${thumbnailPath}`,
+      { method: 'DELETE', bunnyType: 'storage', expectJson: false }
+    )
+
+    await db.delete(videos).where(eq(videos.videoId, videoId))
+    revalidatePaths(['/', `/video/${videoId}`])
+    return {}
+  }
+)

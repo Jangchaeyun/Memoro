@@ -1,24 +1,45 @@
 import Header from '@/components/Header'
-import { dummyCards } from '@/constants'
 import VideoCard from '@/components/VideoCard'
 import React from 'react'
+import { getAllVideosByUser } from '@/lib/actions/video'
+import { redirect } from 'next/navigation'
+import EmptyState from '@/components/EmptyState'
 
-const Page = async ({ params }: ParamsWithSearch) => {
+const Page = async ({ params, searchParams }: ParamsWithSearch) => {
   const { id } = await params
+  const { query, filter } = await searchParams
+
+  const { user, videos } = await getAllVideosByUser(id, query, filter)
+
+  if (!user) redirect('/404')
 
   return (
     <div className='wrapper page'>
       <Header
-        subHeader='sally@gmail.com'
-        title='채리채윤 | 마이데이 & 엔피아'
-        userImg='/assets/images/dummy.jpg'
+        subHeader={user?.email}
+        title={user?.name}
+        userImg={user?.image ?? ''}
       />
 
-      <section className='video-grid'>
-        {dummyCards.map((card) => (
-          <VideoCard key={card.id} {...card} />
-        ))}
-      </section>
+      {videos?.length > 0 ? (
+        <section className='video-grid'>
+          {videos.map(({ videos, user }) => (
+            <VideoCard
+              key={videos.id}
+              {...videos}
+              thumbnail={videos.thumbnailUrl}
+              userImg={user?.image || ''}
+              username={user?.name || '게스트'}
+            />
+          ))}
+        </section>
+      ) : (
+        <EmptyState
+          icon='/assets/icons/video.svg'
+          title='아직 사용 가능한 동영상이 없습니다'
+          description='동영상을 업로드하면 동영상이 표시됩니다.'
+        />
+      )}
     </div>
   )
 }

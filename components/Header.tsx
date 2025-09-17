@@ -1,17 +1,82 @@
-import React from 'react'
+'use client'
+
+import React, { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ICONS } from '@/constants'
 import DropdownList from '@/components/DropdownList'
 import RecordScreen from './RecordScreen'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { updateURLParams } from '@/lib/util'
+import ImageWithFallback from './ImageWithFallback'
+import { filterOptions } from '@/constants'
 
 const Header = ({ subHeader, title, userImg }: SharedHeaderProps) => {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  const [searchQuery, setSearchQuery] = useState(
+    searchParams.get('query') || ''
+  )
+  const [selectedFilter, setSelectedFilter] = useState(
+    searchParams.get('filter') || 'Most Recent'
+  )
+
+  useEffect(() => {
+    setSearchQuery(searchParams.get('query') || '')
+    setSelectedFilter(searchParams.get('filter') || 'Most Recent')
+  }, [searchParams])
+
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      if (searchQuery !== searchParams.get('query')) {
+        const url = updateURLParams(
+          searchParams,
+          { query: searchQuery || null },
+          pathname
+        )
+        router.push(url)
+      }
+    }, 500)
+    return () => clearTimeout(debounceTimer)
+  }, [searchQuery, searchParams, pathname, router])
+
+  const handleFilterChange = (filter: string) => {
+    setSelectedFilter(filter)
+    const url = updateURLParams(
+      searchParams,
+      { filter: filter || null },
+      pathname
+    )
+    router.push(url)
+  }
+
+  const renderFilterTrigger = () => (
+    <div className='filter-trigger'>
+      <figure>
+        <Image
+          src='/assets/icons/hamburger.svg'
+          alt='hamburger'
+          width={14}
+          height={14}
+        />
+        <span>{selectedFilter}</span>
+      </figure>
+      <Image
+        src='/assets/icons/arrow-down.svg'
+        alt='arrow-down'
+        width={20}
+        height={20}
+      />
+    </div>
+  )
+
   return (
     <header className='header'>
       <section className='header-container'>
-        <div className='details'>
+        <figure className='details'>
           {userImg && (
-            <Image
+            <ImageWithFallback
               src={userImg}
               alt='user'
               width={66}
@@ -23,8 +88,7 @@ const Header = ({ subHeader, title, userImg }: SharedHeaderProps) => {
             <p>{subHeader}</p>
             <h1>{title}</h1>
           </article>
-        </div>
-
+        </figure>
         <aside>
           <Link href='/upload'>
             <Image
@@ -38,10 +102,14 @@ const Header = ({ subHeader, title, userImg }: SharedHeaderProps) => {
           <RecordScreen />
         </aside>
       </section>
-
       <section className='search-filter'>
         <div className='search'>
-          <input type='text' placeholder='비디오, 태그, 폴더 검색...' />
+          <input
+            type='text'
+            placeholder='비디오, 태그, 폴더 등을 검색해 보세요.'
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
           <Image
             src='/assets/icons/search.svg'
             alt='search'
@@ -49,8 +117,12 @@ const Header = ({ subHeader, title, userImg }: SharedHeaderProps) => {
             height={16}
           />
         </div>
-
-        <DropdownList />
+        <DropdownList
+          options={filterOptions}
+          selectedOption={selectedFilter}
+          onOptionSelect={handleFilterChange}
+          triggerElement={renderFilterTrigger()}
+        />
       </section>
     </header>
   )
